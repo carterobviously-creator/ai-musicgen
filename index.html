@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>NeonAI Music Lab</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Magenta.js (browser build) -->
+  <script src="https://cdn.jsdelivr.net/npm/@magenta/music@1.22.1/dist/magenta.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #050510;
+      --bg-alt: #0b0b1a;
+      --accent: #ff2fd0;
+      --accent-soft: rgba(255, 47, 208, 0.2);
+      --accent2: #29f3ff;
+      --accent2-soft: rgba(41, 243, 255, 0.2);
+      --text: #f5f5ff;
+      --muted: #9a9ab5;
+      --danger: #ff4b6a;
+      --success: #4bffb0;
+      --border: #26263a;
+      --card-radius: 18px;
+      --shadow-soft: 0 18px 40px rgba(0, 0, 0, 0.6);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text",
+        "Segoe UI", sans-serif;
+    }
+
+    body {
+      margin: 0;
+      background: radial-gradient(circle at top, #1a1a3a 0, #050510 55%, #000 100%);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Layout */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 32px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(18px);
+      background: linear-gradient(
+        to right,
+        rgba(10, 10, 24, 0.9),
+        rgba(10, 10, 24, 0.7)
+      );
+      position: sticky;
+      top: 0;
+      z-index: 20;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .brand-logo {
+      width: 32px;
+      height: 32px;
+      border-radius: 999px;
+      background: conic-gradient(
+        from 180deg,
+        #ff2fd0,
+        #29f3ff,
+        #ffe45e,
+        #ff2fd0
+      );
+      box-shadow: 0 0 18px rgba(255, 47, 208, 0.7);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .brand-logo::after {
+      content: "";
+      position: absolute;
+      inset: 6px;
+      border-radius: inherit;
+      background: #050510;
+    }
+
+    .brand-text-main {
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.9rem;
+    }
+
+    .brand-text-sub {
+      font-size: 0.7rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 8px 16px;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: all 0.18s ease;
+    }
+
+    .nav-btn:hover {
+      color: var(--text);
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .nav-btn.active {
+      color: var(--text);
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: 0 0 16px rgba(255, 47, 208, 0.4);
+    }
+
+    .nav-pill {
+      border-radius: 999px;
+      padding: 8px 16px;
+      font-size: 0.8rem;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #050510;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    main {
+      flex: 1;
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    /* Cards & sections */
+    .section {
+      display: none;
+      animation: fadeIn 0.35s ease forwards;
+    }
+
+    .section.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2.1fr) minmax(0, 1.4fr);
+      gap: 24px;
+      align-items: stretch;
+    }
+
+    .card {
+      background: radial-gradient(circle at top left, #181832 0, #050510 60%);
+      border-radius: var(--card-radius);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow-soft);
+      padding: 20px 22px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -40%;
+      background: radial-gradient(circle at top, rgba(255, 47, 208, 0.12), transparent 60%);
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .card-title {
+      font-size: 1.1rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+    }
+
+    .card-subtitle {
+      font-size: 0.85rem;
+      color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    .hero-title {
+      font-size: 2.2rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    .hero-gradient {
+      background: linear-gradient(90deg, #ff2fd0, #ffe45e, #29f3ff);
+      -webkit-background-clip: text;
+      color: transparent;
+    }
+
+    .hero-tagline {
+      font-size: 0.95rem;
+      color: var(--muted);
+      max-width: 480px;
+      line-height: 1.5;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 20px;
+    }
+
+    .btn {
+      border-radius: 999px;
+      border: 1px solid transparent;
+      padding: 10px 20px;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      color: #050510;
+      font-weight: 600;
+      box-shadow: 0 0 18px rgba(255, 47, 208, 0.5);
+    }
+
+    .btn-primary:hover {
+      filter: brightness(1.08);
+      transform: translateY(-1px);
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--muted);
+      border-color: rgba(255, 255, 255, 0.12);
+    }
+
+    .btn-ghost:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .pill-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .pill.highlight {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: var(--accent2-soft);
+    }
+
+    .stat-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 16px;
+      margin-top: 18px;
+    }
+
+    .stat {
+      flex: 1;
+      min-width: 120px;
+    }
+
+    .stat-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    .stat-value {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-top: 4px;
+    }
+
+    .stat-bar {
+      margin-top: 8px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+    }
+
+    .stat-bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 72%;
+    }
+
+    /* Studio */
+    .studio-layout {
+      display: grid;
+      grid-template-columns: minmax(0, 1.7fr) minmax(0, 1.3fr);
+      gap: 20px;
+    }
+
+    .control-group {
+      margin-bottom: 16px;
+    }
+
+    .control-label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    select,
+    input[type="range"],
+    input[type="text"] {
+      width: 100%;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(10, 10, 24, 0.9);
+      color: var(--text);
+      padding: 8px 12px;
+      font-size: 0.85rem;
+      outline: none;
+      transition: border-color 0.16s ease, box-shadow 0.16s ease;
+    }
+
+    select:focus,
+    input[type="range"]:focus,
+    input[type="text"]:focus {
+      border-color: var(--accent2);
+      box-shadow: 0 0 0 1px rgba(41, 243, 255, 0.4);
+    }
+
+    input[type="range"] {
+      padding: 0;
+      background: transparent;
+    }
+
+    .range-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .range-value {
+      font-size: 0.8rem;
+      color: var(--muted);
+      min-width: 40px;
+      text-align: right;
+    }
+
+    .status-strip {
+      margin-top: 12px;
+      height: 4px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .status-strip-fill {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      transform-origin: left;
+      transform: scaleX(0);
+      opacity: 0.8;
+      transition: transform 0.3s ease;
+    }
+
+    .status-strip-fill.active {
+      animation: statusPulse 1.4s ease-in-out infinite;
+      transform: scaleX(0.7);
+    }
+
+    @keyframes statusPulse {
+      0% {
+        transform: scaleX(0.2);
+      }
+      50% {
+        transform: scaleX(0.9);
+      }
+      100% {
+        transform: scaleX(0.3);
+      }
+    }
+
+    .studio-transport {
+      display: flex;
+      gap: 10px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .chip {
+      border-radius: 999px;
+      padding: 6px 12px;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      color: var(--muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chip-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: var(--accent2);
+      box-shadow: 0 0 8px rgba(41, 243, 255, 0.7);
+    }
+
+    .timeline {
+      margin-top: 16px;
+      height: 80px;
+      border-radius: 12px;
+      border: 1px dashed rgba(255, 255, 255, 0.12);
+      background: linear-gradient(
+        135deg,
+        rgba(255, 47, 208, 0.08),
+        rgba(41, 243, 255, 0.08)
+      );
+      position: relative;
+      overflow: hidden;
+    }
+
+    .timeline-grid {
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(
+          to right,
+          rgba(255, 255, 255, 0.06) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          to bottom,
+          rgba(255, 255, 255, 0.04) 1px,
+          transparent 1px
+        );
+      background-size: 40px 100%, 100% 16px;
+      opacity: 0.6;
+    }
+
+    .timeline-playhead {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--accent2);
+      box-shadow: 0 0 12px rgba(41, 243, 255, 0.8);
+      transform: translateX(0);
+      transition: transform 0.1s linear;
+    }
+
+    .timeline-label {
+      position: absolute;
+      bottom: 6px;
+      right: 10px;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+    }
+
+    /* Stems / Editor */
+    .stem-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: 10px;
+      max-height: 260px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .stem-row {
+      display: grid;
+      grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) 80px;
+      gap: 10px;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(10, 10, 24, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .stem-main {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .stem-color {
+      width: 16px;
+      height: 16px;
+      border-radius: 4px;
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.4);
+    }
+
+    .stem-name {
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+
+    .stem-meta {
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .stem-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .stem-btn {
+      border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: transparent;
+      color: var(--muted);
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      padding: 4px 10px;
+      cursor: pointer;
+      transition: all 0.16s ease;
+    }
+
+    .stem-btn.active {
+      border-color: var(--accent2);
+      color: var(--accent2);
+      background: var(--accent2-soft);
+    }
+
+    .stem-btn.danger {
+      border-color: var(--danger);
+      color: var(--danger);
+    }
+
+    .stem-volume {
+      flex: 1;
+      min-width: 80px;
+    }
+
+    .stem-wave {
+      height: 24px;
+      border-radius: 8px;
+      background: linear-gradient(
+        90deg,
+        rgba(255, 47, 208, 0.2),
+        rgba(41, 243, 255, 0.2)
+      );
+      position: relative;
+      overflow: hidden;
+    }
+
+    .stem-wave::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background-image: linear-gradient(
+        -45deg,
+        rgba(255, 255, 255, 0.18) 25%,
+        transparent 25%,
+        transparent 50%,
+        rgba(255, 255, 255, 0.18) 50%,
+        rgba(255, 255, 255, 0.18) 75%,
+        transparent 75%,
+        transparent
+      );
+      background-size: 12px 12px;
+      opacity: 0.7;
+      animation: waveScroll 1.6s linear infinite;
+    }
+
+    @keyframes waveScroll {
+      from {
+        transform: translateX(0);
+      }
+      to {
+        transform: translateX(-12px);
+      }
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .editor-title {
+      font-size: 0.95rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+    }
+
+    .editor-badge {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 4px 10px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .editor-footer {
+      margin-top: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    .badge-success {
+      color: var(--success);
+    }
+
+    .badge-danger {
+      color: var(--danger);
+    }
+
+    /* Scrollbar */
+    .stem-list::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    .stem-list::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .stem-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.18);
+      border-radius: 999px;
+    }
+
+    /* Responsive */
+    @media (max-width: 900px) {
+      .hero-grid,
+      .studio-layout {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    @media (max-width: 640px) {
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+      }
+      .hero-title {
+        font-size: 1.7rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="brand-logo"></div>
+      <div>
+        <div class="brand-text-main">NeonAI Music Lab</div>
+        <div class="brand-text-sub">Magenta-powered soundscapes</div>
+      </div>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-target="home">Home</button>
+      <button class="nav-btn" data-target="studio">Studio</button>
+      <button class="nav-btn" data-target="editor">Stem Editor</button>
+      <div class="nav-pill">Realtime AI Composition</div>
+    </nav>
+  </header>
+
+  <main>
+    <!-- HOME -->
+    <section id="home" class="section active">
+      <div class="hero-grid">
+        <div class="card">
+          <div class="hero-title hero-gradient">Compose full tracks in your browser.</div>
+          <div class="hero-tagline">
+            Generate up to 2 minutes of layered music—drums, bass, chords, leads, textures—
+            then dive into a stem editor with at least ten separate layers for every track.
+          </div>
+          <div class="hero-actions">
+            <button class="btn btn-primary" id="goToStudioBtn">
+              <span>Open Studio</span>
+              <span>🎛️</span>
+            </button>
+            <button class="btn btn-ghost" id="goToEditorBtn">
+              <span>Last Track Stems</span>
+              <span>🎚️</span>
+            </button>
+          </div>
+          <div class="pill-row">
+            <div class="pill highlight">Magenta.js Engine</div>
+            <div class="pill">Multi-stem generation</div>
+            <div class="pill">Browser-native playback</div>
+            <div class="pill">No downloads, no DAW</div>
+          </div>
+          <div class="stat-row">
+            <div class="stat">
+              <div class="stat-label">Max track length</div>
+              <div class="stat-value">120 seconds</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill"></div>
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Stems per track</div>
+              <div class="stat-value" id="homeStemCount">10+</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: 90%"></div>
+              </div>
+            </div>
+            <div class="stat">
+              <div class="stat-label">Latest session</div>
+              <div class="stat-value" id="homeLastStatus">No track yet</div>
+              <div class="stat-bar">
+                <div class="stat-bar-fill" style="width: 30%"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Session Snapshot</div>
+          <div class="card-subtitle">
+            Visual preview of your next AI track—timeline, stems, and transport in one glance.
+          </div>
+          <div class="timeline">
+            <div class="timeline-grid"></div>
+            <div class="timeline-playhead" id="homePlayhead"></div>
+            <div class="timeline-label" id="homeTimelineLabel">Idle · 0:00 / 0:00</div>
+          </div>
+          <div class="studio-transport" style="margin-top: 18px;">
+            <div class="chip">
+              <div class="chip-dot"></div>
+              <span id="homeChipStatus">Ready for your first track</span>
+            </div>
+            <div class="chip">
+              <span>Engine</span>
+              <span>Magenta.js</span>
+            </div>
+            <div class="chip">
+              <span>Mode</span>
+              <span>Full mix</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- STUDIO -->
+    <section id="studio" class="section">
+      <div class="studio-layout">
+        <div class="card">
+          <div class="card-title">AI Studio Console</div>
+          <div class="card-subtitle">
+            Choose a vibe, set the length, and generate a full multi-stem track. No partial
+            melodies—always drums, bass, chords, and more.
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">Style</div>
+            <select id="styleSelect">
+              <option value="electro">Electro Pulse</option>
+              <option value="lofi">Lo-Fi Drift</option>
+              <option value="cinematic">Cinematic Rise</option>
+              <option value="trap">Trap Halo</option>
+              <option value="ambient">Ambient Bloom</option>
+            </select>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">Track length (seconds)</div>
+            <div class="range-row">
+              <input type="range" id="lengthRange" min="20" max="120" value="60" />
+              <div class="range-value" id="lengthValue">60s</div>
+            </div>
+          </div>
+
+          <div class="control-group">
+            <div class="control-label">Track name</div>
+            <input type="text" id="trackNameInput" placeholder="Neon Skyline, Midnight Engine, etc." />
+          </div>
+
+          <div class="status-strip">
+            <div class="status-strip-fill" id="studioStatusStrip"></div>
+          </div>
+
+          <div class="studio-transport">
+            <button class="btn btn-primary" id="generateBtn">
+              <span>Generate Track</span>
+              <span>⚡</span>
+            </button>
+            <button class="btn btn-ghost" id="playBtn">
+              <span>Play</span>
+              <span>▶️</span>
+            </button>
+            <button class="btn btn-ghost" id="stopBtn">
+              <span>Stop</span>
+              <span>⏹️</span>
+            </button>
+          </div>
+
+          <div class="pill-row" style="margin-top: 18px;">
+            <div class="pill">Auto drums</div>
+            <div class="pill">Bass & chords</div>
+            <div class="pill">Lead & textures</div>
+            <div class="pill highlight" id="studioStemBadge">Stems: 0</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">Studio Timeline</div>
+          <div class="card-subtitle">
+            Visual overview of the generated track. The playhead moves with playback; length
+            reflects your chosen duration.
+          </div>
+
+          <div class="timeline">
+            <div class="timeline-grid"></div>
+            <div class="timeline-playhead" id="studioPlayhead"></div>
+            <div class="timeline-label" id="studioTimelineLabel">Idle · 0:00 / 0:00</div>
+          </div>
+
+          <div class="editor-header" style="margin-top: 16px;">
+            <div class="editor-title">Current stems</div>
+            <div class="editor-badge" id="studioEditorBadge">No track yet</div>
+          </div>
+
+          <div class="stem-list" id="studioStemList"></div>
+
+          <div class="editor-footer">
+            <span id="studioFooterStatus">Generate a track to unlock the stem editor.</span>
+            <button class="btn btn-ghost" id="openEditorFromStudio">
+              <span>Open Stem Editor</span>
+              <span>🎚️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDITOR -->
+    <section id="editor" class="section">
+      <div class="card">
+        <div class="editor-header">
+          <div class="editor-title">Stem Mixer & Editor</div>
+          <div class="editor-badge" id="editorBadge">No track loaded</div>
+        </div>
+        <div class="card-subtitle">
+          Every generated track is split into at least ten stems—drums, bass, chords, leads,
+          FX, pads, and more. Toggle mute/solo, adjust volume, and sculpt the mix.
+        </div>
+
+        <div class="stem-list" id="editorStemList"></div>
+
+        <div class="editor-footer">
+          <span id="editorFooterStatus">Generate a track in the Studio to populate stems.</span>
+          <div>
+            <button class="btn btn-ghost" id="editorPlayBtn">
+              <span>Play Mix</span>
+              <span>▶️</span>
+            </button>
+            <button class="btn btn-ghost" id="editorStopBtn">
+              <span>Stop</span>
+              <span>⏹️</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // --- Navigation ---
+    const sections = {
+      home: document.getElementById("home"),
+      studio: document.getElementById("studio"),
+      editor: document.getElementById("editor"),
+    };
+    const navButtons = document.querySelectorAll(".nav-btn");
+
+    function setSection(id) {
+      Object.entries(sections).forEach(([key, el]) => {
+        el.classList.toggle("active", key === id);
+      });
+      navButtons.forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.target === id);
+      });
+    }
+
+    navButtons.forEach((btn) => {
+      btn.addEventListener("click", () => setSection(btn.dataset.target));
+    });
+
+    document.getElementById("goToStudioBtn").addEventListener("click", () =>
+      setSection("studio")
+    );
+    document.getElementById("goToEditorBtn").addEventListener("click", () =>
+      setSection("editor")
+    );
+    document
+      .getElementById("openEditorFromStudio")
+      .addEventListener("click", () => setSection("editor"));
+
+    // --- UI elements ---
+    const lengthRange = document.getElementById("lengthRange");
+    const lengthValue = document.getElementById("lengthValue");
+    const studioStatusStrip = document.getElementById("studioStatusStrip");
+    const studioTimelineLabel = document.getElementById("studioTimelineLabel");
+    const studioPlayhead = document.getElementById("studioPlayhead");
+    const studioStemList = document.getElementById("studioStemList");
+    const studioStemBadge = document.getElementById("studioStemBadge");
+    const studioEditorBadge = document.getElementById("studioEditorBadge");
+    const studioFooterStatus = document.getElementById("studioFooterStatus");
+
+    const homePlayhead = document.getElementById("homePlayhead");
+    const homeTimelineLabel = document.getElementById("homeTimelineLabel");
+    const homeChipStatus = document.getElementById("homeChipStatus");
+    const homeLastStatus = document.getElementById("homeLastStatus");
+
+    const editorStemList = document.getElementById("editorStemList");
+    const editorBadge = document.getElementById("editorBadge");
+    const editorFooterStatus = document.getElementById("editorFooterStatus");
+
+    const trackNameInput = document.getElementById("trackNameInput");
+    const styleSelect = document.getElementById("styleSelect");
+
+    lengthRange.addEventListener("input", () => {
+      lengthValue.textContent = lengthRange.value + "s";
+    });
+
+    // --- Magenta.js setup ---
+    let currentSequence = null;
+    let currentDurationSec = 0;
+    let currentStems = [];
+    let player = new mm.Player();
+    let editorPlayer = new mm.Player();
+
+    // Simple random color generator for stems
+    function randomStemColor() {
+      const colors = [
+        "#ff2fd0",
+        "#29f3ff",
+        "#ffe45e",
+        "#4bffb0",
+        "#ff4b6a",
+        "#9b6bff",
+        "#ff9f40",
+        "#40ffce",
+        "#ff6bd5",
+        "#6bffea",
+      ];
+      return colors[Math.floor(Math.random() * colors.length)];
+    }
+
+    // Generate a pseudo-random sequence using Magenta primitives
+    function generateSequence(style, durationSec) {
+      const stepsPerSecond = 2; // 120 BPM-ish
+      const totalSteps = Math.floor(durationSec * stepsPerSecond);
+
+      const seq = new mm.NoteSequence();
+      seq.ticksPerQuarter = 220;
+      seq.tempos = [{ qpm: 120 }];
+
+      const stems = [];
+
+      function addStem(name, program, density) {
+        const stemSeq = new mm.NoteSequence();
+        stemSeq.ticksPerQuarter = seq.ticksPerQuarter;
+        stemSeq.tempos = seq.tempos;
+        stemSeq.totalTime = durationSec;
+
+        for (let i = 0; i < totalSteps; i++) {
+          if (Math.random() < density) {
+            const start = i / stepsPerSecond;
+            const dur = (Math.random() * 0.4) + 0.1;
+            const pitchBase =
+              name === "Drums"
+                ? 36
+                : name === "Bass"
+                ? 40
+                : name === "Chords"
+                ? 52
+                : name === "Lead"
+                ? 64
+                : 70;
+            const pitch = pitchBase + Math.floor(Math.random() * 8);
+            stemSeq.notes.push({
+              pitch,
+              startTime: start,
+              endTime: Math.min(start + dur, durationSec),
+              velocity: 80 + Math.floor(Math.random() * 40),
+              program,
+              isDrum: name === "Drums",
+            });
+          }
+        }
+
+        stems.push({
+          name,
+          program,
+          color: randomStemColor(),
+          sequence: stemSeq,
+          muted: false,
+          solo: false,
+          volume: 1.0,
+        });
+      }
+
+      // Base stems: always at least 10
+      addStem("Drums", 0, 0.7);
+      addStem("Bass", 32, 0.4);
+      addStem("Chords", 0, 0.35);
+      addStem("Lead", 80, 0.25);
+      addStem("Pad", 88, 0.2);
+      addStem("Arp", 90, 0.3);
+      addStem("FX", 96, 0.15);
+      addStem("Perc", 0, 0.4);
+      addStem("Sub Bass", 34, 0.25);
+      addStem("Texture", 91, 0.2);
+
+      // Style tweaks
+      if (style === "lofi") {
+        stems.forEach((s) => (s.volume *= 0.8));
+      } else if (style === "cinematic") {
+        stems.forEach((s) => (s.volume *= 1.1));
+      } else if (style === "trap") {
+        stems.forEach((s) => {
+          if (s.name === "Drums" || s.name === "Perc") s.volume *= 1.2;
+        });
+      } else if (style === "ambient") {
+        stems.forEach((s) => {
+          if (s.name === "Lead" || s.name === "FX") s.volume *= 0.7;
+        });
+      }
+
+      // Merge stems into one sequence for playback
+      stems.forEach((stem) => {
+        stem.sequence.notes.forEach((n) => seq.notes.push(n));
+      });
+      seq.totalTime = durationSec;
+
+      return { seq, stems };
+    }
+
+    // --- Studio: generate track ---
+    const generateBtn = document.getElementById("generateBtn");
+    const playBtn = document.getElementById("playBtn");
+    const stopBtn = document.getElementById("stopBtn");
+
+    let studioPlayInterval = null;
+    let homePlayInterval = null;
+
+    function updateTimeline(playheadEl, labelEl, durationSec, currentSec) {
+      const pct = durationSec > 0 ? currentSec / durationSec : 0;
+      playheadEl.style.transform = `translateX(${pct * 100}%)`;
+      const curMin = Math.floor(currentSec / 60);
+      const curSec = Math.floor(currentSec % 60)
+        .toString()
+        .padStart(2, "0");
+      const durMin = Math.floor(durationSec / 60);
+      const durSec = Math.floor(durationSec % 60)
+        .toString()
+        .padStart(2, "0");
+      labelEl.textContent = `Playing · ${curMin}:${curSec} / ${durMin}:${durSec}`;
+    }
+
+    function resetTimeline(playheadEl, labelEl, durationSec, idleText) {
+      playheadEl.style.transform = "translateX(0)";
+      const durMin = Math.floor(durationSec / 60);
+      const durSec = Math.floor(durationSec % 60)
+        .toString()
+        .padStart(2, "0");
+      labelEl.textContent = `${idleText} · 0:00 / ${durMin}:${durSec}`;
+    }
+
+    function renderStems(listEl, stems, compact) {
+      listEl.innerHTML = "";
+      stems.forEach((stem, index) => {
+        const row = document.createElement("div");
+        row.className = "stem-row";
+
+        const main = document.createElement("div");
+        main.className = "stem-main";
+
+        const color = document.createElement("div");
+        color.className = "stem-color";
+        color.style.background = stem.color;
+
+        const name = document.createElement("div");
+        name.className = "stem-name";
+        name.textContent = stem.name;
+
+        const meta = document.createElement("div");
+        meta.className = "stem-meta";
+        meta.textContent = `Program ${stem.program} · Layer ${index + 1}`;
+
+        main.appendChild(color);
+        const textWrap = document.createElement("div");
+        textWrap.appendChild(name);
+        textWrap.appendChild(meta);
+        main.appendChild(textWrap);
+
+        const controls = document.createElement("div");
+        controls.className = "stem-controls";
+
+        const muteBtn = document.createElement("button");
+        muteBtn.className = "stem-btn";
+        muteBtn.textContent = "Mute";
+        muteBtn.addEventListener("click", () => {
+          stem.muted = !stem.muted;
+          muteBtn.classList.toggle("active", stem.muted);
+        });
+
+        const soloBtn = document.createElement("button");
+        soloBtn.className = "stem-btn";
+        soloBtn.textContent = "Solo";
+        soloBtn.addEventListener("click", () => {
+          stem.solo = !stem.solo;
+          soloBtn.classList.toggle("active", stem.solo);
+        });
+
+        const volWrap = document.createElement("div");
+        volWrap.className = "stem-volume";
+        const volRange = document.createElement("input");
+        volRange.type = "range";
+        volRange.min = "0";
+        volRange.max = "1";
+        volRange.step = "0.05";
+        volRange.value = stem.volume.toFixed(2);
+        volRange.addEventListener("input", () => {
+          stem.volume = parseFloat(volRange.value);
+        });
+        volWrap.appendChild(volRange);
+
+        controls.appendChild(muteBtn);
+        controls.appendChild(soloBtn);
+        controls.appendChild(volWrap);
+
+        const wave = document.createElement("div");
+        wave.className = "stem-wave";
+
+        row.appendChild(main);
+        row.appendChild(controls);
+        row.appendChild(wave);
+
+        listEl.appendChild(row);
+      });
+
+      if (compact && stems.length === 0) {
+        const empty = document.createElement("div");
+        empty.className = "stem-meta";
+        empty.textContent = "No stems yet. Generate a track to see layers.";
+        listEl.appendChild(empty);
+      }
+    }
+
+    generateBtn.addEventListener("click", () => {
+      const style = styleSelect.value;
+      const durationSec = parseInt(lengthRange.value, 10);
+      const trackName =
+        trackNameInput.value.trim() || "Untitled Neon Track";
+
+      studioStatusStrip.classList.add("active");
+      studioStatusStrip.style.transform = "scaleX(0.8)";
+
+      const { seq, stems } = generateSequence(style, durationSec);
+
+      currentSequence = seq;
+      currentStems = stems;
+      currentDurationSec = durationSec;
+
+      studioStatusStrip.classList.remove("active");
+      studioStatusStrip.style.transform = "scaleX(0.0)";
+
+      studioStemBadge.textContent = `Stems: ${stems.length}`;
+      studioEditorBadge.textContent = trackName;
+      studioFooterStatus.textContent =
+        "Track ready. Open the Stem Editor to tweak layers.";
+      homeLastStatus.textContent = `Last track: ${trackName}`;
+      homeChipStatus.textContent = "New track generated · multi-stem mix ready";
+
+      renderStems(studioStemList, stems, true);
+      renderStems(editorStemList, stems, false);
+      editorBadge.textContent = trackName;
+      editorFooterStatus.textContent =
+        "Adjust mute/solo/volume per stem, then play the full mix.";
+
+      resetTimeline(studioPlayhead, studioTimelineLabel, durationSec, "Idle");
+      resetTimeline(homePlayhead, homeTimelineLabel, durationSec, "Idle");
+    });
+
+    // --- Studio playback ---
+    playBtn.addEventListener("click", () => {
+      if (!currentSequence) return;
+
+      player.stop();
+      player.start(currentSequence);
+
+      let t = 0;
+      clearInterval(studioPlayInterval);
+      studioPlayInterval = setInterval(() => {
+        t += 0.1;
+        if (t >= currentDurationSec) {
+          clearInterval(studioPlayInterval);
+          resetTimeline(
+            studioPlayhead,
+            studioTimelineLabel,
+            currentDurationSec,
+            "Idle"
+          );
+        } else {
+          updateTimeline(
+            studioPlayhead,
+            studioTimelineLabel,
+            currentDurationSec,
+            t
+          );
+        }
+      }, 100);
+    });
+
+    stopBtn.addEventListener("click", () => {
+      player.stop();
+      clearInterval(studioPlayInterval);
+      resetTimeline(
+        studioPlayhead,
+        studioTimelineLabel,
+        currentDurationSec,
+        "Idle"
+      );
+    });
+
+    // --- Editor playback (mix) ---
+    const editorPlayBtn = document.getElementById("editorPlayBtn");
+    const editorStopBtn = document.getElementById("editorStopBtn");
+
+    editorPlayBtn.addEventListener("click", () => {
+      if (!currentSequence || currentStems.length === 0) return;
+
+      editorPlayer.stop();
+      editorPlayer.start(currentSequence);
+
+      let t = 0;
+      clearInterval(homePlayInterval);
+      homePlayInterval = setInterval(() => {
+        t += 0.1;
+        if (t >= currentDurationSec) {
+          clearInterval(homePlayInterval);
+          resetTimeline(
+            homePlayhead,
+            homeTimelineLabel,
+            currentDurationSec,
+            "Idle"
+          );
+        } else {
+          updateTimeline(
+            homePlayhead,
+            homeTimelineLabel,
+            currentDurationSec,
+            t
+          );
+        }
+      }, 100);
+    });
+
+    editorStopBtn.addEventListener("click", () => {
+      editorPlayer.stop();
+      clearInterval(homePlayInterval);
+      resetTimeline(
+        homePlayhead,
+        homeTimelineLabel,
+        currentDurationSec,
+        "Idle"
+      );
+    });
+  </script>
+</body>
+</html>
